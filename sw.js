@@ -56,6 +56,13 @@ function blockKind(urlStr) {
 const swPath = self.location.pathname;
 const basePath = swPath.substring(0, swPath.lastIndexOf('/') + 1);
 self.basePath = basePath;
+
+// scramjet opens its idb at version 1 without creating the stores here, so this adds them on any open, and off the
+// site root (the svg on jsdelivr) uses a db of its own. must match guardScramjetDb in p/js/app/proxy.js
+{
+    const open = indexedDB.open.bind(indexedDB), name = "$scramjet" + (basePath === "/" ? "" : basePath);
+    indexedDB.open = (n, v) => { if (n !== "$scramjet") return open(n, v); const r = open(name, v); r.addEventListener("upgradeneeded", () => { for (const s of ["config", "cookies", "redirectTrackers", "referrerPolicies", "publicSuffixList"]) r.result.objectStoreNames.contains(s) || r.result.createObjectStore(s); }); return r; };
+}
  
 self.$scramjet = {
     files: {
